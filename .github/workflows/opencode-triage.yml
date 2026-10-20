@@ -6,7 +6,9 @@ name: opencode-triage
 
 on:
   issues:
-    types: [opened, edited]
+    # Only "opened" - including "edited" makes GitHub emit a second event right
+    # after creation, which answers every new issue twice.
+    types: [opened]
   workflow_dispatch:
     inputs:
       prompt:
