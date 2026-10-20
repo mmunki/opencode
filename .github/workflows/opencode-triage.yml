@@ -1,0 +1,65 @@
+name: opencode-triage
+
+# Automatically answers every new (or edited) issue.
+#
+# Also available as a manual trigger from the Actions tab.
+
+on:
+  issues:
+    types: [opened, edited]
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Prompt to send to opencode"
+        required: false
+        type: string
+
+jobs:
+  opencode:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Configure git for all repositories
+        env:
+          TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "opencode-agent[bot]"
+          git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      - name: Export provider API key (if configured)
+        env:
+          KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "OPENCODE_API_KEY=$KEY" >> "$GITHUB_ENV"
+          fi
+
+      # The default instruction lives in prompts/triage.md so it can be edited
+      # without touching this workflow.
+      - name: Load triage prompt
+        run: |
+          {
+            echo "TRIAGE_PROMPT<<EOF"
+            cat prompts/triage.md
+            echo
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Run opencode
+        uses: anomalyco/opencode/github@github-v1.2.26
+        env:
+          GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
+        with:
+          model: opencode/minimax-m3.1-flash-free
+          use_github_token: true
+          prompt: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
