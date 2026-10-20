@@ -97,7 +97,7 @@ if [ -n "$CLONE" ]; then
   else
     git clone --quiet --depth 50 "$CLONE" "$SRC"
   fi
-else
+elif [ -n "$BUILD" ]; then
   log "copying the working tree into $SRC (the checkout is not touched)"
   tar -C "$(pwd)" --exclude=.git -cf - . 2>/dev/null | tar -C "$SRC" -xf -
 fi
