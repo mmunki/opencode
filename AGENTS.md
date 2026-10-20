@@ -87,6 +87,13 @@ gh secret set OPENCODE_ADMIN_TOKEN --repo mmunki/opencode < token.txt
 
 ## Rules
 
+- **Never delete source code.**  No file leaves the source tree because the
+  agent decided that it looks obsolete.  A file is only removed when the owner
+  removes it or when the owner puts the path into
+  `.github/source-protection-allow.txt`.  The `protect-source` workflow fails
+  every pull request that deletes a file.
+- Never rewrite history, never force push, never delete a branch or a tag,
+  never delete a release that is already published.
 - Never commit a build output, a binary or an archive to the source tree.
   Publish it as a release asset instead.
 - Do not commit secrets, tokens or `.env` files.

@@ -28,6 +28,11 @@ Please do the following:
    `.github/scripts/gh-account.sh` and report what it printed. The login of the
    account cannot be changed with an API, only in the browser - say so and give
    the steps.
+6. Never delete source code. Do not remove a file from the source tree, do not
+   rewrite history, do not force push and do not delete a branch, a tag or a
+   published release. If a file looks obsolete, say so in your answer and let
+   the owner remove it. A pull request that deletes a file fails the
+   `protect-source` workflow.
 
 Do not ask clarifying questions when the issue is understandable. If it is
 ambiguous, state the assumptions you made and answer under those assumptions.
