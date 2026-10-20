@@ -1,0 +1,90 @@
+name: release
+
+# Builds something and publishes it as a GitHub Release asset.
+#
+# The output of a build is never committed to the source tree, it always ends
+# up in a release.  This workflow is the manual version of that rule, the
+# agent calls .github/scripts/publish-release.sh for the automatic one.
+#
+#   gh workflow run release.yml \
+#     -f repo=mmunki/ld -f ref=main -f build=make -f artifacts=bin/ld \
+#     -f tag=v0.1.0 -f name="ld 0.1.0"
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "owner/name of the repository the release is published in"
+        required: false
+        default: "mmunki/opencode"
+      ref:
+        description: "branch or tag that is built"
+        required: false
+        default: "main"
+      build:
+        description: "the build command, it runs in a scratch copy of the source"
+        required: true
+      artifacts:
+        description: "the artifacts to publish, space separated paths"
+        required: true
+      tag:
+        description: "the tag of the release"
+        required: true
+      name:
+        description: "the title of the release"
+        required: false
+      notes:
+        description: "the notes of the release"
+        required: false
+      draft:
+        description: "create the release as a draft"
+        type: boolean
+        default: false
+      prerelease:
+        description: "create the release as a pre release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build and publish the release
+        env:
+          TAG: ${{ inputs.tag }}
+          RELEASE_NAME: ${{ inputs.name }}
+          NOTES: ${{ inputs.notes }}
+          BUILD: ${{ inputs.build }}
+          ARTIFACTS: ${{ inputs.artifacts }}
+          REPO: ${{ inputs.repo }}
+          REF: ${{ inputs.ref }}
+          DRAFT: ${{ inputs.draft }}
+          PRERELEASE: ${{ inputs.prerelease }}
+          # The owner token can publish into every repository of the owner,
+          # the workflow token only into this one.
+          GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          chmod +x .github/scripts/publish-release.sh
+
+          clone_url="https://github.com/${REPO}.git"
+          args=(--repo "$REPO" --tag "$TAG" --clone "$clone_url" --branch "$REF")
+
+          if [ -n "${RELEASE_NAME:-}" ]; then args+=(--name "$RELEASE_NAME"); fi
+          if [ -n "${NOTES:-}" ]; then args+=(--notes "$NOTES"); fi
+          if [ "${DRAFT:-false}" = "true" ]; then args+=(--draft); fi
+          if [ "${PRERELEASE:-false}" = "true" ]; then args+=(--prerelease); fi
+
+          # shellcheck disable=SC2086
+          .github/scripts/publish-release.sh "${args[@]}" \
+            --build "$BUILD" ${ARTIFACTS}

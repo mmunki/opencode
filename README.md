@@ -6,11 +6,16 @@ Personal opencode agent. Ask it anything through GitHub Issues.
 
 | Path | Description |
 | --- | --- |
-| `opencode_2.0.22_aarch64.deb` | The Android `aarch64` build of opencode v2.0.22, committed byte-for-byte as built. |
 | `.github/workflows/opencode.yml` | Answers questions asked in issue / PR comments. |
 | `.github/workflows/opencode-triage.yml` | Automatically answers newly opened issues. |
+| `.github/workflows/release.yml` | Builds something and publishes it as a release. |
+| `.github/scripts/publish-release.sh` | Builds an artefact and publishes it as a release asset. |
+| `.github/scripts/gh-account.sh` | The account level operations (profile, tokens, repositories). |
 | `prompts/triage.md` | The instruction used for automatic issue triage. |
 | `AGENTS.md` | Context the agent loads for this repository. |
+
+There is **no binary in the source tree**. Every build ends in a GitHub
+Release and the binary is an asset of that release.
 
 ## How to use it
 
@@ -33,7 +38,7 @@ replies with a `Created PR #<n>` comment instead of a prose answer.
 Open an issue (or comment on an existing one) and write:
 
 ```
-/oc what does the deb in this repo contain?
+/oc what does the release of this repository contain?
 ```
 
 or
@@ -56,20 +61,33 @@ answered twice.
 
 Go to **Actions → opencode-triage → Run workflow** and type your own prompt.
 
-## Downloading the .deb
+## Releases
 
-The package is committed to this repository byte-for-byte as it was built, so
-the blob on GitHub has the exact same SHA-1 as the file on the device:
+Build output is never committed to the source tree. It is always published as
+a release asset, and the release URL is what the agent reports back.
+
+The releases of this repository:
+
+- https://github.com/mmunki/opencode/releases
+
+Ask for a build and the agent publishes it:
 
 ```
-629b6819e40418b96a8dedfc15f8b6cac8f5e4b54682d9f4194c59b68aa95829  opencode_2.0.22_aarch64.deb
+/oc build the final ld binary from mmunki/ld and publish it as a release
 ```
 
-Because the repository is private, download it with an authenticated client:
+The same can be done from the Actions tab: **Actions → release → Run
+workflow**. The build always runs in a scratch copy of the source, so the
+checkout is never modified.
+
+### Downloading the .deb
+
+The package is published as a release asset, byte-for-byte as it was built,
+so the blob on GitHub has the exact same SHA-1 as the file on the device:
 
 ```bash
-gh api repos/mmunki/opencode/contents/opencode_2.0.22_aarch64.deb \
-  --jq .content | base64 -d > opencode_2.0.22_aarch64.deb
+gh release download v2.0.22 --repo mmunki/opencode \
+  --pattern 'opencode_2.0.22_aarch64.deb'
 ```
 
 Verify it after downloading:
@@ -89,6 +107,27 @@ one. You can ask it to work on another repository:
 /oc fix the failing build in mmunki/su and open a PR there
 ```
 
+It can also work on the account itself - the profile, the repositories, the
+releases and the tokens. `.github/scripts/gh-account.sh` is the interface:
+
+| Command | What it does |
+| --- | --- |
+| `whoami`, `scopes` | the login, the id and the scopes of the token in use |
+| `profile`, `profile bio="..." company="..."` | shows and changes the profile |
+| `username` | shows the login and explains how to rename the account |
+| `emails`, `ssh-keys` | the e-mail addresses and the SSH keys of the account |
+| `pat --name NAME [--repo OWNER/NAME]` | creates a new personal access token |
+| `repo-create NAME [--public\|--private]` | creates a repository |
+
+Two limits are worth knowing:
+
+- **The login of the account cannot be changed with an API.** GitHub only
+  allows it in the browser, `username` prints the exact steps.
+- **Creating a token needs the `OPENCODE_ADMIN_TOKEN` secret**, a fine grained
+  token with `Administration: write`. A classic token cannot create other
+  tokens. Without that secret the `pat` command stops with a clear message
+  and everything else still works.
+
 ## Setup details
 
 - **Model** – `opencode/minimax-m3.1-flash-free`. The free opencode model is
@@ -106,7 +145,8 @@ one. You can ask it to work on another repository:
 
 | Secret | Required | Purpose |
 | --- | --- | --- |
-| `OPENCODE_GITHUB_TOKEN` | yes | Token used for the GitHub API and for git clone/fetch/push. Needs `repo` and `workflow` scopes to reach all repositories. |
+| `OPENCODE_GITHUB_TOKEN` | yes | Token used for the GitHub API and for git clone/fetch/push. Needs `repo` and `workflow` scopes to reach all repositories. With the `user` scope it can also change the profile, with `admin:public_key` it can manage the SSH keys. |
+| `OPENCODE_ADMIN_TOKEN` | no | Fine grained token with `Administration: write`. It is the only way to create further tokens. |
 | `OPENCODE_API_KEY` | no | Only needed if you switch away from the free model. |
 
 ### Rotating the token
@@ -117,3 +157,15 @@ then update the secret:
 ```bash
 gh secret set OPENCODE_GITHUB_TOKEN --repo mmunki/opencode
 ```
+
+### Adding the administration token
+
+Create a **fine grained** personal access token for the `mmunki` account with
+the `Administration: write` permission, then store it:
+
+```bash
+gh secret set OPENCODE_ADMIN_TOKEN --repo mmunki/opencode
+```
+
+With that secret the agent can create new personal access tokens through
+`.github/scripts/gh-account.sh pat`.

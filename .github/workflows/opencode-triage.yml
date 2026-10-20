@@ -20,9 +20,11 @@ jobs:
   opencode:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # The agent creates releases, pushes tags and opens pull requests.
+      contents: write
       issues: write
       pull-requests: write
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -56,11 +58,26 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_ENV"
 
+      # The scripts that publish a build as a release and that change the
+      # account have to be executable before the agent uses them.
+      - name: Prepare the release and account tooling
+        run: |
+          chmod +x .github/scripts/*.sh
+          ls -l .github/scripts/
+
       - name: Run opencode
         uses: anomalyco/opencode/github@github-v1.2.26
         env:
           GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          # The owner token, the agent uses it for everything that is not
+          # covered by GITHUB_TOKEN.
+          OPENCODE_GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
+          # Optional: a fine grained token with "Administration: write".
+          # Only with it the agent can create new tokens and change the
+          # account itself, everything else works without it.
+          OPENCODE_ADMIN_TOKEN: ${{ secrets.OPENCODE_ADMIN_TOKEN }}
         with:
           model: opencode/minimax-m3.1-flash-free
           use_github_token: true
