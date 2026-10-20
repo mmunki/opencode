@@ -12,6 +12,22 @@ Please do the following:
    - the concrete fix (exact file and change) if you can determine one.
 3. If you produced code changes, commit them on a branch and open a pull request
    that references this issue.
+4. If the issue asks for a build, build it and publish the result as a GitHub
+   Release asset. Build output is never committed to the source tree. Use the
+   script, it builds in a scratch directory and never touches the checkout:
+
+       .github/scripts/publish-release.sh \
+           --repo mmunki/<repo> --clone https://github.com/mmunki/<repo> \
+           --branch <branch> --build "<build command>" --artifact <path> \
+           --tag <tag> --name "<title>" --notes "<notes>"
+
+   The script prints the URL of the release. Put that URL in your answer, it is
+   the deliverable. Add the checksums of the published assets to the notes.
+5. If the issue asks for something on the GitHub account itself (the profile,
+   the name, a new token, the visibility of a repository, a release), use
+   `.github/scripts/gh-account.sh` and report what it printed. The login of the
+   account cannot be changed with an API, only in the browser - say so and give
+   the steps.
 
 Do not ask clarifying questions when the issue is understandable. If it is
 ambiguous, state the assumptions you made and answer under those assumptions.

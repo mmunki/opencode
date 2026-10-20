@@ -4,3 +4,18 @@ node_modules/
 *.log
 .DS_Store
 .opencode/
+
+# Build output is never committed, it is published as a release asset.
+bin/
+build/
+dist/
+out/
+target/
+*.o
+*.a
+*.so
+*.deb
+*.rpm
+*.apk
+*.tar.gz
+*.zip
