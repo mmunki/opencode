@@ -65,6 +65,9 @@ jobs:
           chmod +x .github/scripts/*.sh
           ls -l .github/scripts/
 
+      - name: Remember the state of the checkout
+        run: echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
       - name: Run opencode
         uses: anomalyco/opencode/github@github-v1.2.26
         env:
@@ -82,3 +85,23 @@ jobs:
           model: opencode/minimax-m3.1-flash-free
           use_github_token: true
           prompt: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
+
+      # The agent works in its own scratch space, but if it left anything
+      # behind in the checkout it is restored here.  The source tree of the
+      # repository is never changed by a run, a change is only ever made on a
+      # branch and in a pull request.
+      - name: Make sure the source tree was not touched
+        run: |
+          set -euo pipefail
+          changed="$(git status --porcelain || true)"
+          if [ -n "$changed" ] || [ "$(git rev-parse HEAD)" != "$CHECKOUT_SHA" ]; then
+            echo "::warning::the agent changed the checkout, it is restored"
+            printf '%s\n' "$changed"
+            git fetch --quiet --no-tags origin "$CHECKOUT_SHA" || true
+            git reset --hard "$CHECKOUT_SHA" || true
+            git clean -fdq
+            git checkout --force "$CHECKOUT_SHA" || true
+          fi
+          echo "the checkout is clean:"
+          git status --porcelain
+          git rev-parse HEAD

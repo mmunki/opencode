@@ -1,0 +1,12 @@
+# The paths that may be deleted from the source tree.
+#
+# One path per line, exactly as git reports it, nothing else.  A pull
+# request that deletes a path that is not listed here fails the
+# "protect-source" workflow.
+#
+# The agent never adds a path to this file, only the owner does.  The file
+# exists for the rare case that a file really has to leave the source tree,
+# for example a binary that is published as a release asset instead.
+#
+# Example:
+# opencode_2.0.22_aarch64.deb
