@@ -11,6 +11,9 @@
 #   publish-release.sh --build "make" --artifact dist/app.tar.gz \
 #       --tag v1.2.3 --notes-file NOTES.md
 #
+# The SHA-256 of every published asset is appended to the notes of the
+# release, it is what makes a download verifiable.
+#
 # The build always runs in a scratch directory, the checkout that calls this
 # script is never modified and nothing is ever committed.
 # ============================================================================
@@ -118,23 +121,71 @@ for a in "${ARTIFACTS[@]:-}"; do
   log "asset: $(basename "$src") ($(wc -c <"$STAGE/$(basename "$src")") bytes)"
 done
 
+shopt -s nullglob
+files=("$STAGE"/*)
+shopt -u nullglob
+
+# The SHA-256 of every asset belongs into the notes of the release, it is
+# what makes a download verifiable.  The checksums are taken from the staged
+# files, they are the exact bytes that are uploaded.
+CHECKSUMS=""
+if [ ${#files[@]} -gt 0 ]; then
+  command -v sha256sum >/dev/null 2>&1 || die "sha256sum is required"
+  for f in "${files[@]}"; do
+    sum="$(sha256sum "$f" | cut -d' ' -f1)"
+    if [ -n "$CHECKSUMS" ]; then
+      CHECKSUMS+=$'\n'
+    fi
+    CHECKSUMS+="- \`$(basename "$f")\`: \`$sum\`"
+    log "sha256 $(basename "$f"): $sum"
+  done
+fi
+
+# The checksum section of the release notes.
+checksum_section() {
+  [ -n "$CHECKSUMS" ] || return 0
+  printf '### Checksums (SHA-256)\n\n%s\n' "$CHECKSUMS"
+}
+
+# The notes of a new release: the text of the caller and the checksums.
+compose_notes() {
+  if [ -n "$NOTES" ]; then
+    printf '%s\n\n' "$NOTES"
+  fi
+  checksum_section
+}
+
+# Drops a checksum section that a previous run of this script has written.
+strip_checksums() {
+  awk '
+    /^### Checksums \(SHA-256\)$/ { skip = 1; next }
+    skip && /^### / { skip = 0 }
+    !skip { print }
+  '
+}
+
 if [ "$DRYRUN" = 1 ]; then
   log "dry run, nothing was published"
   exit 0
 fi
-
-shopt -s nullglob
-files=("$STAGE"/*)
-shopt -u nullglob
 
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
   log "release $TAG already exists, uploading the assets"
   if [ ${#files[@]} -gt 0 ]; then
     gh release upload "$TAG" "${files[@]}" --repo "$REPO" --clobber
   fi
+  if [ -n "$CHECKSUMS" ]; then
+    # the checksums of the assets that were just uploaded, the notes of the
+    # release itself are kept
+    gh release view "$TAG" --repo "$REPO" --json body --jq .body \
+      | strip_checksums > "$WORK/notes.md"
+    printf '\n' >> "$WORK/notes.md"
+    checksum_section >> "$WORK/notes.md"
+    gh release edit "$TAG" --repo "$REPO" --notes-file "$WORK/notes.md"
+  fi
 else
   log "creating the release $TAG in $REPO"
-  args=(release create "$TAG" --repo "$REPO" --title "$NAME" --notes "$NOTES")
+  args=(release create "$TAG" --repo "$REPO" --title "$NAME" --notes "$(compose_notes)")
   [ "$DRAFT" = 1 ] && args+=(--draft)
   [ "$PRERELEASE" = 1 ] && args+=(--prerelease)
   if [ ${#files[@]} -gt 0 ]; then

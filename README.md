@@ -66,6 +66,9 @@ Go to **Actions → opencode-triage → Run workflow** and type your own prompt.
 Build output is never committed to the source tree. It is always published as
 a release asset, and the release URL is what the agent reports back.
 
+The SHA-256 of every published asset is written into the notes of the release,
+so a download can be verified against the release it came from.
+
 The releases of this repository:
 
 - https://github.com/mmunki/opencode/releases
