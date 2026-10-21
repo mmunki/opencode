@@ -100,6 +100,21 @@ sha256sum opencode_2.0.22_aarch64.deb
 # 629b6819e40418b96a8dedfc15f8b6cac8f5e4b54682d9f4194c59b68aa95829
 ```
 
+### The OpenJDK 27 package for Termux
+
+The agent also builds Termux packages. The OpenJDK 27 package for Termux
+(Android, `aarch64`) has its own repository with the build recipe and the
+patches:
+
+- https://github.com/mmunki/termux-openjdk-27
+
+It is a real OpenJDK 27.0.1 build: the sources of the OpenJDK 27.0.1 GA
+release are compiled with the Android NDK for the `aarch64-linux-android`
+target, with the Android patches of the Termux package applied. The `.deb`
+files are published as a release:
+
+- https://github.com/mmunki/termux-openjdk-27/releases/tag/v27.0.1
+
 ## Reach of the agent
 
 The agent authenticates with a token that has access to **every repository of
