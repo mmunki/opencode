@@ -133,10 +133,12 @@ Two limits are worth knowing:
 
 ## Setup details
 
-- **Model** – `opencode/minimax-m3.1-flash-free`. The free opencode model is
+- **Model** – `opencode/deepseek-v4.1-flash-free`. The free opencode model is
   used by default, so no provider API key is required. To switch to a keyed
   model, add an `OPENCODE_API_KEY` secret to the repository and update the
-  `model:` input in the workflows.
+  `model:` input in the workflows. Free models are rotated by the provider, so
+  if a run fails with `Model not found`, pick one of the models it suggests
+  and update both workflow files.
 - **Auth** – the workflows use `use_github_token: true`, which means the
   OpenCode GitHub App does **not** need to be installed. The token is read from
   the `OPENCODE_GITHUB_TOKEN` secret.

@@ -83,7 +83,11 @@ jobs:
           # account itself, everything else works without it.
           OPENCODE_ADMIN_TOKEN: ${{ secrets.OPENCODE_ADMIN_TOKEN }}
         with:
-          model: opencode/minimax-m3.1-flash-free
+          # Must be a model the opencode provider still serves. The free
+          # models rotate, so this ID is checked against
+          # `opencode models --provider opencode` when a run fails with
+          # "Model not found".
+          model: opencode/deepseek-v4.1-flash-free
           use_github_token: true
 
       # The agent works in its own scratch space, but if it left anything
