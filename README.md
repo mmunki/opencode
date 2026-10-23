@@ -142,12 +142,10 @@ Two limits are worth knowing:
 - **Permissions** – a headless runner has nobody to approve a prompt.
   `external_directory` and `doom_loop` default to `"ask"`, so the agent used
   to wait forever and the job was cancelled at GitHub's 6 hour limit. The
-  repository therefore has an `opencode.json` with
-  `{"permission":{"*":"allow","question":"deny"}}`, and both workflows export
-  the same JSON in `OPENCODE_PERMISSION` so the setting also applies when the
-  agent works in a scratch directory. `question` is denied because an
-  interactive question would hang in the same way. The agent jobs also have
-  `timeout-minutes: 180` as a backstop.
+  repository therefore has an `opencode.json` with `"permission": "allow"`,
+  and both workflows export `{"*":"allow"}` in `OPENCODE_PERMISSION` so every
+  permission is granted automatically, also when the agent works in a scratch
+  directory. The agent jobs also have `timeout-minutes: 180` as a backstop.
 - **Auth** – the workflows use `use_github_token: true`, which means the
   OpenCode GitHub App does **not** need to be installed. The token is read from
   the `OPENCODE_GITHUB_TOKEN` secret.

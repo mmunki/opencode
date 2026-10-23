@@ -86,9 +86,9 @@ jobs:
           OPENCODE_ADMIN_TOKEN: ${{ secrets.OPENCODE_ADMIN_TOKEN }}
           # `external_directory` and `doom_loop` default to "ask". In a
           # headless runner nobody can answer that prompt, so the job used to
-          # hang until the timeout. Allow everything except an interactive
-          # question, which would hang the same way.
-          OPENCODE_PERMISSION: '{"*":"allow","question":"deny"}'
+          # hang until the timeout. Allow every permission automatically;
+          # the GitHub handler denies `question` for its own sessions.
+          OPENCODE_PERMISSION: '{"*":"allow"}'
         with:
           # Must be a model the opencode provider still serves. The free
           # models rotate, so this ID is checked against
