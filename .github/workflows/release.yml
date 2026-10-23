@@ -56,6 +56,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # GitHub kills a job at 6h. Long builds must hand off before that; this
+    # cap makes an accidental hang fail inside the limit.
+    timeout-minutes: 350
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4

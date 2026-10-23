@@ -68,6 +68,22 @@ repository under `mmunki/`, never in this one and never as a release here.
 `--source-archive` adds `<project>-<tag>-source.tar.gz` to the release.  Every
 project release includes it, together with the checksums the script writes.
 
+## Long builds: never reach GitHub's 6 hour limit
+
+A job must never run longer than **350 minutes**.  For a build that can take
+longer, use the checkpointed continuation workflow in `mmunki/game-forge`
+(`.github/workflows/build.yml`):
+
+- the job has `timeout-minutes: 350`;
+- the build itself is stopped at 19800 s (5h30m);
+- sources, import cache and build output are written to a checkpoint artifact;
+- the workflow dispatches a new run with `previous_run=<run-id>`;
+- the new run restores the checkpoint, cancels the old run, and continues.
+
+Build commands must be resumable (`make`, `ninja`, SCons, Godot import/export).
+Never let a job be killed by GitHub at 6h: a killed job loses its workspace and
+cannot hand off.
+
 ## Access to the other repositories of the owner
 
 The agent runs with a token that has access to **all** repositories of the
