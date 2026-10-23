@@ -1,0 +1,6 @@
+id=sipolicy
+name=sipolicy
+version=0.109
+versionCode=109
+author=mmunki
+description=Kernel-assisted command policy for Android. A root daemon answers execve via seccomp user notification and enforces sipolicy.rule files from this and every other Magisk module. Ships 4-ABI native daemon, CLI, seccomp runner and LD_PRELOAD guard.

@@ -13,6 +13,7 @@ Personal opencode agent. Ask it anything through GitHub Issues.
 | `.github/scripts/gh-account.sh` | The account level operations (profile, tokens, repositories). |
 | `prompts/triage.md` | The instruction used for automatic issue triage. |
 | `AGENTS.md` | Context the agent loads for this repository. |
+| `sipolicy/` | Magisk module sources for the kernel-assisted command policy; built zip is published as a release asset. |
 
 There is **no binary in the source tree**. Every build ends in a GitHub
 Release and the binary is an asset of that release.

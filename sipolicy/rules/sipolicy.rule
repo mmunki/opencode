@@ -1,0 +1,59 @@
+# sipolicy.rule - central policy for sipolicy 0.109
+#
+# Every rule file is read top to bottom.  The first matching rule wins.
+# The fallback is controlled by "set default allow" or "set default deny".
+# The daemon and its own tools are always allowed so the device cannot be
+# locked out of the policy controls.
+#
+# Syntax:
+#   set default allow|deny
+#   allow|deny all
+#   allow|deny exec  <shell-glob>     match the full executable path
+#   allow|deny cmd   <shell-glob>     match the executable basename / first
+#                                     word of a shell command
+#   allow|deny path  <shell-glob>     match the full path
+#   allow|deny shell <shell-glob>     match the whole "sh -c" command
+#   allow|deny uid   <n>|<lo>-<hi>|<lo>+
+#
+# Other Magisk modules can ship their own sipolicy.rule in the module root:
+#   /data/adb/modules/<module>/sipolicy.rule
+# Additional files can be dropped in:
+#   /data/adb/sipolicy/rules/*.rule
+#
+# Reload after editing:
+#   sipolicy reload
+
+set default allow
+
+# ---------------------------------------------------------------------------
+# Built-in protection for the policy tooling.  Keep these first.
+# ---------------------------------------------------------------------------
+allow path /data/adb/sipolicy/*
+allow cmd sipolicyd
+allow cmd sipolicy
+allow cmd sipolicy-run
+
+# ---------------------------------------------------------------------------
+# Examples.  Uncomment one at a time, reload, and test with:
+#   sipolicy check /system/bin/su
+#   sipolicy run su -c id
+# ---------------------------------------------------------------------------
+
+# Block the classic root shell.
+#deny exec /system/bin/su
+#deny cmd su
+
+# Block Magisk's own command surface.
+#deny cmd magisk
+
+# Block binaries staged in world-writable locations.
+#deny exec /data/local/tmp/*
+#deny path */frida-server*
+
+# Block a shell command pattern.
+#deny shell *rm -rf /*
+#deny shell *dd if=*
+
+# Restrict an app uid range to the default policy.  Pair this with
+# "set default deny" and a set of allow rules for a whitelist deployment.
+#deny uid 10000-19999
