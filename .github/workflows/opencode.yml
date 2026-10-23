@@ -28,6 +28,9 @@ jobs:
       issues: write
       pull-requests: write
       actions: read
+    # A headless runner cannot answer a permission prompt. Without a timeout
+    # a stuck job sits for GitHub's 6 hour maximum before it is cancelled.
+    timeout-minutes: 180
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -82,6 +85,11 @@ jobs:
           # Only with it the agent can create new tokens and change the
           # account itself, everything else works without it.
           OPENCODE_ADMIN_TOKEN: ${{ secrets.OPENCODE_ADMIN_TOKEN }}
+          # `external_directory` and `doom_loop` default to "ask". In a
+          # headless runner nobody can answer that prompt, so the job used to
+          # hang until the timeout. Allow everything except an interactive
+          # question, which would hang the same way.
+          OPENCODE_PERMISSION: '{"*":"allow","question":"deny"}'
         with:
           # Must be a model the opencode provider still serves. The free
           # models rotate, so this ID is checked against
