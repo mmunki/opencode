@@ -17,6 +17,11 @@ Personal opencode agent. Ask it anything through GitHub Issues.
 There is **no binary in the source tree**. Every build ends in a GitHub
 Release and the binary is an asset of that release.
 
+A *project* that an issue asks for (an app, a module, a daemon) gets its own
+repository under `mmunki/`; this repository is only the control plane. Project
+releases are published in the project repository and always include the source
+archive (`--source-archive`) next to the build and its checksums.
+
 ## How to use it
 
 ### Where does the answer appear?

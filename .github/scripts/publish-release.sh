@@ -11,6 +11,11 @@
 #   publish-release.sh --build "make" --artifact dist/app.tar.gz \
 #       --tag v1.2.3 --notes-file NOTES.md
 #
+# Add --source-archive to attach the source of the built commit as
+# <project>-<tag>-source.tar.gz next to the binaries.  Project releases
+# always include it.
+#       --source-archive
+#
 # The SHA-256 of every published asset is appended to the notes of the
 # release, it is what makes a download verifiable.
 #
@@ -23,7 +28,7 @@ log() { printf '==> %s\n' "$*" >&2; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,25p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -38,6 +43,7 @@ NOTES_FILE=""
 DRAFT=0
 PRERELEASE=0
 DRYRUN=0
+SOURCE_ARCHIVE=0
 ARTIFACTS=()
 
 while [ $# -gt 0 ]; do
@@ -51,6 +57,7 @@ while [ $# -gt 0 ]; do
     --notes)        NOTES="${2:?--notes needs a value}"; shift 2 ;;
     --notes-file)   NOTES_FILE="${2:?--notes-file needs a value}"; shift 2 ;;
     --artifact)     ARTIFACTS+=("${2:?--artifact needs a value}"); shift 2 ;;
+    --source-archive) SOURCE_ARCHIVE=1; shift ;;
     --draft)        DRAFT=1; shift ;;
     --prerelease)   PRERELEASE=1; shift ;;
     --dry-run)      DRYRUN=1; shift ;;
@@ -120,6 +127,28 @@ for a in "${ARTIFACTS[@]:-}"; do
   cp -f "$src" "$STAGE/$(basename "$src")"
   log "asset: $(basename "$src") ($(wc -c <"$STAGE/$(basename "$src")") bytes)"
 done
+
+# A project release carries the source that produced the binaries.  When the
+# build ran in a clone the tracked files of HEAD are archived, which keeps
+# generated output out of the archive.  A working-tree copy has no .git, so
+# the fallback tars it without the usual build directories.
+if [ "$SOURCE_ARCHIVE" = 1 ]; then
+  project="$(basename "$REPO")"
+  source_name="${project}-${TAG}-source.tar.gz"
+  log "creating the source archive $source_name"
+  rm -f "$STAGE/$source_name"
+  if [ -d "$SRC/.git" ] || git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
+    git -C "$SRC" archive --format=tar.gz \
+      --prefix="${project}-${TAG}/" -o "$STAGE/$source_name" HEAD
+  else
+    [ -n "$(ls -A "$SRC" 2>/dev/null)" ] || die "--source-archive needs a source tree"
+    tar -C "$SRC" --exclude=.git --exclude=build --exclude=dist \
+      --exclude='*.zip' --exclude='*.tar.gz' \
+      -czf "$STAGE/$source_name" .
+  fi
+  [ -s "$STAGE/$source_name" ] || die "the source archive is empty"
+  log "asset: $source_name ($(wc -c <"$STAGE/$source_name") bytes)"
+fi
 
 shopt -s nullglob
 files=("$STAGE"/*)

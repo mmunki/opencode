@@ -222,10 +222,15 @@ cmd_repo_create() {
       --private)     visibility="private"; shift ;;
       --description) description="${2:?}"; shift 2; has_description=1 ;;
       -h|--help)     usage 0 ;;
-      *) die "unknown option: $1" ;;
+      -*)            die "unknown option: $1" ;;
+      *)
+        # The documented form is `repo-create NAME`; --name still works.
+        [ -z "$name" ] || die "unexpected argument: $1"
+        name="$1"; shift
+        ;;
     esac
   done
-  [ -n "$name" ] || die "--name is required"
+  [ -n "$name" ] || die "the repository name is required"
   local body="{\"name\":\"$(json_escape "$name")\",\"private\":$([ "$visibility" = private ] && echo true || echo false)"
   [ $has_description -eq 1 ] && body="$body,\"description\":\"$(json_escape "$description")\""
   body="$body}"

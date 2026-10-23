@@ -44,6 +44,10 @@ on:
         description: "create the release as a pre release"
         type: boolean
         default: false
+      source_archive:
+        description: "attach the source of the built ref as an asset"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -69,6 +73,7 @@ jobs:
           REF: ${{ inputs.ref }}
           DRAFT: ${{ inputs.draft }}
           PRERELEASE: ${{ inputs.prerelease }}
+          SOURCE_ARCHIVE: ${{ inputs.source_archive }}
           # The owner token can publish into every repository of the owner,
           # the workflow token only into this one.
           GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN || github.token }}
@@ -84,6 +89,7 @@ jobs:
           if [ -n "${NOTES:-}" ]; then args+=(--notes "$NOTES"); fi
           if [ "${DRAFT:-false}" = "true" ]; then args+=(--draft); fi
           if [ "${PRERELEASE:-false}" = "true" ]; then args+=(--prerelease); fi
+          if [ "${SOURCE_ARCHIVE:-true}" = "true" ]; then args+=(--source-archive); fi
 
           # shellcheck disable=SC2086
           .github/scripts/publish-release.sh "${args[@]}" \

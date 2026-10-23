@@ -36,6 +36,38 @@ belongs in the answer to the issue.
 The same thing can be done from the Actions tab: **Actions → release → Run
 workflow**.
 
+## Projects get their own repository
+
+`mmunki/opencode` is the control repository for the agent.  A project that an
+issue asks for (an app, a module, a daemon, a binary) lives in its **own**
+repository under `mmunki/`, never in this one and never as a release here.
+
+1. Create the repository (public, like the other project repositories):
+
+   ```bash
+   .github/scripts/gh-account.sh repo-create sipolicy --public \
+       --description "Kernel-assisted command policy for Android"
+   ```
+
+2. Commit the complete source to the new repository's `main` and push it.
+   The project's build script, sources, tests and CI belong there too.
+3. Build and test in the new repository.  For a native or Magisk project the
+   CI must build and exercise every supported ABI; the release notes must
+   list the ABI test matrix and its result.
+4. Publish the release there with both the build output and the source:
+
+   ```bash
+   .github/scripts/publish-release.sh \
+       --repo mmunki/sipolicy --clone https://github.com/mmunki/sipolicy \
+       --branch main --build "bash build.sh" \
+       --artifact sipolicy/dist/sipolicy-0.109.zip \
+       --source-archive \
+       --tag sipolicy-0.109 --name "sipolicy 0.109" --notes "what changed"
+   ```
+
+`--source-archive` adds `<project>-<tag>-source.tar.gz` to the release.  Every
+project release includes it, together with the checksums the script writes.
+
 ## Access to the other repositories of the owner
 
 The agent runs with a token that has access to **all** repositories of the

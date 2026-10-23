@@ -12,14 +12,33 @@ Please do the following:
    - the concrete fix (exact file and change) if you can determine one.
 3. If you produced code changes, commit them on a branch and open a pull request
    that references this issue.
-4. If the issue asks for a build, build it and publish the result as a GitHub
-   Release asset. Build output is never committed to the source tree. Use the
-   script, it builds in a scratch directory and never touches the checkout:
+4. If the issue asks for a project, an app, a module or a build, the project
+   gets its own repository. `mmunki/opencode` is only the control repository:
+   never commit a project's source to it and never publish a project release
+   in it.
 
-       .github/scripts/publish-release.sh \
-           --repo mmunki/<repo> --clone https://github.com/mmunki/<repo> \
-           --branch <branch> --build "<build command>" --artifact <path> \
-           --tag <tag> --name "<title>" --notes "<notes>"
+   - Pick a short, lowercase, hyphenated repository name (for example
+     `sipolicy`). Reuse the existing repository when the issue is a follow-up
+     for a project that already has one.
+   - Create the repository when it does not exist yet:
+
+         .github/scripts/gh-account.sh repo-create <name> --public \
+             --description "<one line about the project>"
+
+   - Put the complete source in that repository, commit it on `main`, and
+     push it. A pull request in `mmunki/opencode` is not where a project
+     lives.
+   - Build and test in that repository. For a native or Magisk project build
+     and test every supported ABI before publishing; the release notes must
+     name the test matrix and its result.
+   - Publish the release in the project repository with the binary and the
+     source archive:
+
+         .github/scripts/publish-release.sh \
+             --repo mmunki/<name> --clone https://github.com/mmunki/<name> \
+             --branch main --build "<build command>" --artifact <path> \
+             --source-archive \
+             --tag <tag> --name "<title>" --notes "<notes>"
 
    The script prints the URL of the release. Put that URL in your answer, it is
    the deliverable. Add the checksums of the published assets to the notes.
