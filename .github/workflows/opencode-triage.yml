@@ -80,12 +80,8 @@ jobs:
       - name: Remember the state of the checkout
         run: echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      - name: Install opencode
-        run: |
-          curl -fsSL https://opencode.ai/install | bash
-          echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
-
-      - name: Run opencode with model fallback
+      - name: Run opencode
+        uses: anomalyco/opencode/github@github-v1.2.26
         env:
           GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
@@ -102,14 +98,14 @@ jobs:
           # hang until the timeout. Allow every permission automatically;
           # the GitHub handler denies `question` for its own sessions.
           OPENCODE_PERMISSION: '{"*":"allow"}'
-          USE_GITHUB_TOKEN: "true"
-          PROMPT: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
-          # Two minutes without a token means the model is stuck, not working.
-          OPENCODE_STALL_TIMEOUT: "120"
-          OPENCODE_ATTEMPT_TIMEOUT: "1200"
-        # The wrapper tries the fast models first (GLM, Flint, Beam) and moves
-        # on when a model stalls, hits the free-tier limit, or times out.
-        run: .github/scripts/run-opencode-fallback.sh
+        with:
+          # Must be a model the opencode provider still serves. The free
+          # models rotate, so this ID is checked against
+          # `opencode models --provider opencode` when a run fails with
+          # "Model not found".
+          model: opencode/deepseek-v4.1-flash-free
+          use_github_token: true
+          prompt: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
 
       # The agent works in its own scratch space, but if it left anything
       # behind in the checkout it is restored here.  The source tree of the
