@@ -104,8 +104,8 @@ jobs:
           OPENCODE_PERMISSION: '{"*":"allow"}'
           USE_GITHUB_TOKEN: "true"
           PROMPT: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
-          # One minute without a token means the model is stuck, not working.
-          OPENCODE_STALL_TIMEOUT: "60"
+          # Two minutes without a token means the model is stuck, not working.
+          OPENCODE_STALL_TIMEOUT: "120"
           OPENCODE_ATTEMPT_TIMEOUT: "1200"
         # The wrapper tries the fast models first (GLM, Flint, Beam) and moves
         # on when a model stalls, hits the free-tier limit, or times out.

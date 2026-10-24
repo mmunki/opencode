@@ -17,14 +17,14 @@
 #
 # Environment:
 #   OPENCODE_ATTEMPT_TIMEOUT  total seconds per model (default: 1200)
-#   OPENCODE_STALL_TIMEOUT    seconds without output (default: 60)
+#   OPENCODE_STALL_TIMEOUT    seconds without output (default: 120)
 #   OPENCODE_MODELS           space-separated override of the model list
 # ============================================================================
 set -uo pipefail
 
 read -r -a models <<< "${OPENCODE_MODELS:-opencode/glm-5.3-flash-free opencode/flint-40b-free opencode/beam-free opencode/deepseek-v4.1-flash-free opencode/mimo-v2.6-flash-free}"
 attempt_seconds="${OPENCODE_ATTEMPT_TIMEOUT:-1200}"
-stall_seconds="${OPENCODE_STALL_TIMEOUT:-60}"
+stall_seconds="${OPENCODE_STALL_TIMEOUT:-120}"
 
 # Run one model.  stdout/stderr go to a file so a watchdog can see whether
 # the model is producing anything; tail streams the same lines to the job log.

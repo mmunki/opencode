@@ -49,7 +49,7 @@ raw JSON or tool-call transcripts.
 
 The agent starts with the fast models (GLM-5.3-Flash, Flint-40B, Beam) and
 automatically moves to the next model when one hits the free-tier usage
-limit, produces no output for one minute, or exceeds the per-model timeout.
+limit, produces no output for two minutes, or exceeds the per-model timeout.
 The order is defined in `.github/scripts/run-opencode-fallback.sh`; set the
 `OPENCODE_MODELS` repository variable to override it.
 
