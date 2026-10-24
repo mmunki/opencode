@@ -104,8 +104,11 @@ jobs:
           # the GitHub handler denies `question` for its own sessions.
           OPENCODE_PERMISSION: '{"*":"allow"}'
           USE_GITHUB_TOKEN: "true"
-        # The wrapper tries the fast models first (MiMo, GLM, Flint, Beam) and
-        # moves on when a model hits the free-tier limit or times out.
+          # Five minutes without a token means the model is stuck, not working.
+          OPENCODE_STALL_TIMEOUT: "300"
+          OPENCODE_ATTEMPT_TIMEOUT: "1200"
+        # The wrapper tries the fast models first (GLM, Flint, Beam) and moves
+        # on when a model stalls, hits the free-tier limit, or times out.
         run: .github/scripts/run-opencode-fallback.sh
 
       # The agent works in its own scratch space, but if it left anything
