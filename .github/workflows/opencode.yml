@@ -104,8 +104,8 @@ jobs:
           # the GitHub handler denies `question` for its own sessions.
           OPENCODE_PERMISSION: '{"*":"allow"}'
           USE_GITHUB_TOKEN: "true"
-          # Five minutes without a token means the model is stuck, not working.
-          OPENCODE_STALL_TIMEOUT: "300"
+          # One minute without a token means the model is stuck, not working.
+          OPENCODE_STALL_TIMEOUT: "60"
           OPENCODE_ATTEMPT_TIMEOUT: "1200"
         # The wrapper tries the fast models first (GLM, Flint, Beam) and moves
         # on when a model stalls, hits the free-tier limit, or times out.
