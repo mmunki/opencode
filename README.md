@@ -45,6 +45,13 @@ Every agent job gets an explicit 8 GiB heap budget
 16 GiB. Answers are posted as ordinary chat-style Markdown comments, not as
 raw JSON or tool-call transcripts.
 
+### Model fallback
+
+The agent starts with MiMo-V2.6-Flash and automatically moves to the next
+model when a model hits the free-tier usage limit or an attempt times out.
+The order is defined in `.github/scripts/run-opencode-fallback.sh`; set the
+`OPENCODE_MODELS` repository variable to override it.
+
 ### Ask a question
 
 Open an issue (or comment on an existing one) and write:

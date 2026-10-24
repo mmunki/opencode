@@ -81,8 +81,12 @@ jobs:
       - name: Remember the state of the checkout
         run: echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      - name: Run opencode
-        uses: anomalyco/opencode/github@github-v1.2.26
+      - name: Install opencode
+        run: |
+          curl -fsSL https://opencode.ai/install | bash
+          echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+
+      - name: Run opencode with model fallback
         env:
           GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
@@ -99,13 +103,10 @@ jobs:
           # hang until the timeout. Allow every permission automatically;
           # the GitHub handler denies `question` for its own sessions.
           OPENCODE_PERMISSION: '{"*":"allow"}'
-        with:
-          # Must be a model the opencode provider still serves. The free
-          # models rotate, so this ID is checked against
-          # `opencode models --provider opencode` when a run fails with
-          # "Model not found".
-          model: opencode/big-pickle
-          use_github_token: true
+          USE_GITHUB_TOKEN: "true"
+        # The wrapper tries MiMo first, then the other models.  It moves on
+        # when a model hits the free-tier limit or an attempt times out.
+        run: .github/scripts/run-opencode-fallback.sh
 
       # The agent works in its own scratch space, but if it left anything
       # behind in the checkout it is restored here.  The source tree of the
