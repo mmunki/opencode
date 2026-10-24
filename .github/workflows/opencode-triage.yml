@@ -103,7 +103,7 @@ jobs:
           # models rotate, so this ID is checked against
           # `opencode models --provider opencode` when a run fails with
           # "Model not found".
-          model: opencode/deepseek-v4.1-flash-free
+          model: opencode/big-pickle
           use_github_token: true
           prompt: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
 

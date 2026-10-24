@@ -104,7 +104,7 @@ jobs:
           # models rotate, so this ID is checked against
           # `opencode models --provider opencode` when a run fails with
           # "Model not found".
-          model: opencode/deepseek-v4.1-flash-free
+          model: opencode/big-pickle
           use_github_token: true
 
       # The agent works in its own scratch space, but if it left anything
