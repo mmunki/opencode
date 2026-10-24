@@ -38,6 +38,13 @@ placeholder. The run log stays available under the
 If the agent decides the issue needs a code change, it opens a pull request and
 replies with a `Created PR #<n>` comment instead of a prose answer.
 
+### Memory and reply style
+
+Every agent job gets an explicit 8 GiB heap budget
+(`NODE_OPTIONS=--max-old-space-size=8192`); the hosted runner itself has
+16 GiB. Answers are posted as ordinary chat-style Markdown comments, not as
+raw JSON or tool-call transcripts.
+
 ### Ask a question
 
 Open an issue (or comment on an existing one) and write:

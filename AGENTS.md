@@ -135,6 +135,8 @@ gh secret set OPENCODE_ADMIN_TOKEN --repo mmunki/opencode < token.txt
 
 ## Rules
 
+- Write answers as chat messages in Markdown. Do not paste raw JSON, tool-call
+  payloads or action logs into issues and pull requests.
 - **Never delete source code.**  No file leaves the source tree because the
   agent decided that it looks obsolete.  A file is only removed when the owner
   removes it or when the owner puts the path into

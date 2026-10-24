@@ -53,6 +53,13 @@ Please do the following:
    the owner remove it. A pull request that deletes a file fails the
    `protect-source` workflow.
 
+## Reply style
+
+Write the answer as a normal chat message in Markdown. Do not paste raw JSON,
+tool-call payloads, action logs, or internal transcripts into the issue or pull
+request. Show a command and its human-readable result when it matters, but keep
+the reply conversational and focused on the outcome.
+
 Do not ask clarifying questions when the issue is understandable. If it is
 ambiguous, state the assumptions you made and answer under those assumptions.
 Keep the reply focused and skip pleasantries.

@@ -31,11 +31,20 @@ jobs:
     # A headless runner cannot answer a permission prompt. Without a timeout
     # a stuck job sits for GitHub's 6 hour maximum before it is cancelled.
     timeout-minutes: 180
+    env:
+      # Give the agent an explicit 8 GiB heap budget.  ubuntu-latest itself has
+      # 16 GiB, so this leaves memory for the checkout, git and child tools.
+      NODE_OPTIONS: "--max-old-space-size=8192"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+
+      - name: Show memory budget
+        run: |
+          echo "Agent heap limit: 8 GiB (NODE_OPTIONS=--max-old-space-size=8192)"
+          free -h || true
 
       # The token below is a user token with access to every repository of the
       # owner. `insteadOf` rewrites any github.com remote so that clone/fetch/push
