@@ -47,9 +47,9 @@ raw JSON or tool-call transcripts.
 
 ### Model fallback
 
-The agent starts with MiMo-V2.6-Flash and automatically moves to the next
-model when a model hits the free-tier usage limit or an attempt times out.
-The order is defined in `.github/scripts/run-opencode-fallback.sh`; set the
+The agent starts with Big Pickle and automatically moves to the next model
+when a model hits the free-tier usage limit or an attempt times out. The
+order is defined in `.github/scripts/run-opencode-fallback.sh`; set the
 `OPENCODE_MODELS` repository variable to override it.
 
 ### Ask a question
