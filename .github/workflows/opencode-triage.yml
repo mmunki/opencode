@@ -104,8 +104,8 @@ jobs:
           OPENCODE_PERMISSION: '{"*":"allow"}'
           USE_GITHUB_TOKEN: "true"
           PROMPT: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
-        # The wrapper tries Big Pickle first, then the other models.  It moves
-        # on when a model hits the free-tier limit or an attempt times out.
+        # The wrapper tries the fast models first (MiMo, GLM, Flint, Beam) and
+        # moves on when a model hits the free-tier limit or times out.
         run: .github/scripts/run-opencode-fallback.sh
 
       # The agent works in its own scratch space, but if it left anything

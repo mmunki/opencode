@@ -17,7 +17,7 @@
 # ============================================================================
 set -uo pipefail
 
-read -r -a models <<< "${OPENCODE_MODELS:-opencode/big-pickle opencode/mimo-v2.6-flash-free opencode/glm-5.3-flash-free opencode/flint-40b-free}"
+read -r -a models <<< "${OPENCODE_MODELS:-opencode/mimo-v2.6-flash-free opencode/glm-5.3-flash-free opencode/flint-40b-free opencode/beam-free opencode/deepseek-v4.1-flash-free}"
 attempt_timeout="${OPENCODE_ATTEMPT_TIMEOUT:-20m}"
 
 for model in "${models[@]}"; do
