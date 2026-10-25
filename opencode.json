@@ -1,4 +1,37 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "permission": "allow"
+  "permission": "allow",
+  "compaction": {
+    "auto": true
+  },
+  "tool_output": {
+    "max_lines": 400,
+    "max_bytes": 20480
+  },
+  "agent": {
+    "consultant": {
+      "mode": "subagent",
+      "description": "Read-only escalation when the primary agent is stuck, an error is ambiguous, or a change is architecturally risky. Use before a risky multi-file edit and after two failed attempts at the same error.",
+      "steps": 24,
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git *": "allow"
+        }
+      },
+      "prompt": "You are the consultant. The primary agent asks for your opinion when it is stuck. Do not edit files and do not run builds; inspect the repository with read, grep, glob, list and read-only git commands. Return a short, concrete recommendation: the most likely root cause, the exact files and functions involved, the minimal change to try, and the command that proves whether it worked. Prefer one testable hypothesis over several guesses. If information is missing, name the exact file or command output you need instead of inventing it."
+    },
+    "debugger": {
+      "mode": "subagent",
+      "description": "Closed-loop debugger that reproduces a failure, applies the smallest fix and re-runs the build or tests until they pass. Use for a failing test, compiler error or reproducible bug.",
+      "steps": 48,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "task": "deny"
+      },
+      "prompt": "You are the debugger. Work in a closed loop: reproduce the failure, read the exact stderr/stdout and exit code, make the smallest change that addresses the cause, then re-run the same command. Repeat until the command exits 0 or you can explain why it cannot. Never claim success without the verifying command and its exit status. Keep output short: show the failing lines and the final status, not the whole log. Do not commit, push, create releases or open pull requests; return the diff and the verification to the primary agent."
+    }
+  }
 }

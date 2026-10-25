@@ -133,6 +133,32 @@ never printed into a comment or into a log.  Store it with:
 gh secret set OPENCODE_ADMIN_TOKEN --repo mmunki/opencode < token.txt
 ```
 
+## Execution and verification loop
+
+Every change to code follows this order, and no step is skipped:
+
+1. Reproduce the problem, or state the command that will prove the change
+   works.
+2. Make the smallest change that addresses the cause. List the files before a
+   multi-file edit, and run the build once the whole set is in place.
+3. Run the build and the tests and read the exit code, not only the last line
+   of output. A warning that would fail CI counts as a failure.
+4. When the command fails, feed the exact error back into the next attempt.
+   After two failed attempts at the same error, delegate to the `consultant`
+   subagent (read-only analysis) instead of making random edits. Use the
+   `debugger` subagent for an isolated failing test or reproducible bug.
+5. Report success only after the verifying command exits 0, and include that
+   command and its exit status in the answer.
+
+Keep the context small: request the failing lines rather than a full log, and
+prefer `grep`/`tail`-style filters. Never paste an entire build log into an
+issue or pull request.
+
+`opencode.json` defines the `consultant` and `debugger` subagents. Delegation
+is explicit through the `task` tool; there is no automatic confidence score or
+provider failover. The subagents inherit the workflow model unless their
+`model` field is set after a provider key has been configured.
+
 ## Rules
 
 - Write answers as chat messages in Markdown. Do not paste raw JSON, tool-call
