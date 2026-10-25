@@ -45,6 +45,63 @@ Every agent job gets an explicit 8 GiB heap budget
 16 GiB. Answers are posted as ordinary chat-style Markdown comments, not as
 raw JSON or tool-call transcripts.
 
+### Agent roles and verification
+
+`opencode.json` defines two subagents next to the default `build` agent:
+
+| Agent | Role | Permissions |
+| --- | --- | --- |
+| `consultant` | Read-only escalation for ambiguous errors, architecture decisions and risky multi-file changes | read/grep/glob and read-only `git`, no edits |
+| `debugger` | Closed loop of reproduce → fix → re-run until the command exits 0 | edits and bash, cannot delegate further |
+
+The primary agent delegates explicitly through the `task` tool. opencode has
+no automatic confidence score, router or multi-provider failover, so the
+"fallback" is a rule in `AGENTS.md`: after two failed attempts at the same
+error the agent hands the problem to `consultant` instead of guessing.
+
+Both subagents inherit the workflow model. To give the consultant a heavier
+model, first add a provider key (the `OPENCODE_API_KEY` secret) and then set
+the model in `opencode.json`:
+
+```json
+"consultant": {
+  "mode": "subagent",
+  "model": "anthropic/claude-sonnet-4-6"
+}
+```
+
+Until a provider key exists only the free `opencode/*` models are available,
+which is why no model is hard-coded for the subagents.
+
+Context is bounded by `compaction.auto` and `tool_output` (400 lines /
+20 KiB instead of the 2000 lines / 50 KiB default), so verbose build logs are
+truncated to disk instead of filling the conversation.
+
+### Adding an MCP tool
+
+MCP servers are declared under `mcp` and are loaded at startup. A local
+server takes an argument array; set `enabled: false` until it is installed:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/tmp/opencode"],
+      "enabled": false,
+      "environment": {}
+    }
+  }
+}
+```
+
+Remote servers use `"type": "remote"`, a `url` and optional `headers` with
+`{env:VAR}` interpolation for tokens.
+
+Note that `.opencode/` is in `.gitignore`, so file-based agents, commands and
+skills placed there stay local. Repository-wide instructions belong in
+`AGENTS.md`, which is loaded automatically.
+
 ### Ask a question
 
 Open an issue (or comment on an existing one) and write:
