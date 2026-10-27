@@ -57,9 +57,13 @@ jobs:
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
           git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
 
-      # Only export the provider key when it actually exists. An empty value
+      # Only export the provider key when it actually exists.  An empty value
       # would make opencode believe the provider is configured and break the
       # free models, so it is deliberately left unset when the secret is absent.
+      # When you set OPENCODE_API_KEY in the repo secrets you can also add
+      # keyed models (gemini, chatgpt, ...) to OPENCODE_MODELS so the agent falls
+      # back to them for tasks the free models are weak at (game building,
+      # drawable xml, ...).
       - name: Export provider API key (if configured)
         env:
           KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -81,12 +85,30 @@ jobs:
       - name: Remember the state of the checkout
         run: echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      - name: Run opencode
-        uses: anomalyco/opencode/github@github-v1.2.26
+      - name: Load triage prompt
+        run: |
+          {
+            echo "TRIAGE_PROMPT<<EOF"
+            cat prompts/triage.md
+            echo
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      # Install opencode directly instead of the anomalyco action: that action's
+      # "Get opencode version" step curls api.github.com and can fail, which
+      # killed the job before the agent even started.  The direct install is
+      # deterministic and works with the fallback wrapper below.
+      - name: Install opencode
+        run: |
+          curl -fsSL https://opencode.ai/install | bash
+          echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+
+      - name: Run opencode with model fallback
         env:
           GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
           # The owner token, the agent uses it for everything that is not
           # covered by GITHUB_TOKEN.
           OPENCODE_GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
@@ -99,13 +121,15 @@ jobs:
           # hang until the timeout. Allow every permission automatically;
           # the GitHub handler denies `question` for its own sessions.
           OPENCODE_PERMISSION: '{"*":"allow"}'
-        with:
-          # Must be a model the opencode provider still serves. The free
-          # models rotate, so this ID is checked against
-          # `opencode models --provider opencode` when a run fails with
-          # "Model not found".
-          model: opencode/deepseek-v4.1-flash-free
-          use_github_token: true
+          # Two minutes without a token means the model is stuck, not working.
+          OPENCODE_STALL_TIMEOUT: "120"
+          OPENCODE_ATTEMPT_TIMEOUT: "1200"
+        # The wrapper tries the fast models first (GLM, Flint, Beam) and moves
+        # on when a model stalls, hits the free-tier limit, or times out.  If
+        # OPENCODE_API_KEY is configured, add keyed models to OPENCODE_MODELS
+        # (repo variable) so the agent falls back to gemini/chatgpt for tasks
+        # the free models are weak at.
+        run: .github/scripts/run-opencode-fallback.sh
 
       # The agent works in its own scratch space, but if it left anything
       # behind in the checkout it is restored here.  The source tree of the
