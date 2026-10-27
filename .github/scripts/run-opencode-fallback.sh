@@ -62,8 +62,9 @@ run_attempt() {
 
   : > "$log"
   # --standalone runs a private model server so CI does not need a background
-  # opencode service.  --auto approves every permission headless.
-  opencode run --standalone --model "$model" --auto --prompt "$full_prompt" >"$log" 2>&1 &
+  # opencode service.  --auto approves every permission headless.  The message
+  # is a positional argument (opencode run has no --prompt flag).
+  opencode run --standalone --model "$model" --auto "$full_prompt" >"$log" 2>&1 &
   pid=$!
 
   started=$(date +%s)
