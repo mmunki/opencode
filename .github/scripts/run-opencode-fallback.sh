@@ -61,10 +61,9 @@ run_attempt() {
   local pid started now last_change last_size size status killed=0
 
   : > "$log"
-  # --standalone runs a private model server so CI does not need a background
-  # opencode service.  --auto approves every permission headless.  The message
-  # is a positional argument (opencode run has no --prompt flag).
-  opencode run --standalone --model "$model" --auto "$full_prompt" >"$log" 2>&1 &
+  # --auto approves every permission headless.  The message is a positional
+  # argument (opencode run has no --prompt flag).
+  opencode run --model "$model" --auto "$full_prompt" >"$log" 2>&1 &
   pid=$!
 
   started=$(date +%s)
