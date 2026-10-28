@@ -166,6 +166,25 @@ check "workspace root: npm ran once" [ "$(wc -l < "$FAKE_NPM_LOG")" -eq 1 ]
 check "workspace root: npm ran the test script" grep -q '^npm test --if-present$' "$FAKE_NPM_LOG"
 check "workspace root: tests are reported as passed" grep -q 'All tests passed' <<< "$out"
 
+# --- 7. this repository's own manifest is a valid test entry point ----------
+# Regression for "npm error ENOENT .../package.json": the checkout root must
+# carry a parseable manifest with a `test` script, otherwise the gate turns a
+# successful agent run into a bogus "your changes broke the tests" retry loop.
+new_case repository-manifest
+check "repository: package.json exists" test -f "$ROOT/package.json"
+check "repository: package.json is valid JSON" node -e '
+  const m = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  process.exit(typeof m.scripts?.test === "string" && m.scripts.test.length > 0 ? 0 : 1);
+' "$ROOT/package.json"
+set +e
+out="$(GITHUB_WORKSPACE="$ROOT" TRIAGE_PROMPT="Triage." GH_REPO="mmunki/opencode" \
+      OPENCODE_MODELS="test/model" timeout 60 "$SCRIPT" 2>&1)"
+status=$?
+set -e
+check "repository: gate accepts the manifest" [ "$status" -eq 0 ]
+check "repository: npm ran once" [ "$(wc -l < "$FAKE_NPM_LOG")" -eq 1 ]
+check "repository: tests are reported as passed" grep -q 'All tests passed' <<< "$out"
+
 echo
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

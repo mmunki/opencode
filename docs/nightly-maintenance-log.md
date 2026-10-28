@@ -78,3 +78,42 @@ is merged, no change on `test` can affect the workflow, because the workflow
 always checks out the default branch. An alternative is to change the
 checkout `ref` in `opencode-triage.yml` to the branch the agent uses.
 
+### Third run, 2026-10-28
+
+**Reported symptom (issue #92, still open):** every consumer of `npm test` at
+the checkout root - the agent's post-run gate in this repository, and any
+external harness - failed with
+
+```
+npm error path /home/runner/work/opencode/opencode/package.json
+npm error enoent Could not read package.json
+```
+
+**Root cause:** the previous run fixed the guard inside the runner, but the
+repository still had no manifest at all. Any `npm test` invocation that did
+not go through the guard (the old runner on `main`, a CI harness, a developer)
+hit ENOENT. Fixing the caller and leaving the missing file in place made the
+failure dependent on which copy of the script ran.
+
+**Change:**
+
+- added `package.json` at the repository root: `npm test` runs
+  `.github/scripts/tests/run-opencode-fallback.test.sh`, `npm run lint` runs
+  `shellcheck`, `npm run check` runs both. The manifest is private, has no
+  dependencies and adds no install step.
+- `scripts-test.yml` now invokes `npm run lint` / `npm test`, so CI validates
+  the same entry points the gate uses, and the workflow triggers on
+  `package.json` changes.
+- the runner test suite gained case 7: it asserts the repository manifest
+  exists, parses as JSON and exposes a non-empty `test` script, and that the
+  gate accepts it (31 assertions).
+
+**Verification:** `npm test` (31 assertions) and `npm run lint` pass; the
+runner still skips the gate for a manifest without a test script and for a
+missing manifest.
+
+**Still open:** the `issues` event always loads the workflow from the default
+branch, so `main` must receive the runner and manifest through a pull request
+(`test` → `main`) before issue-triggered runs use them. Nothing on `test` can
+change what an issue-triggered run executes.
+

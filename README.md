@@ -65,11 +65,13 @@ requires code changes it opens a pull request instead.
 ### Post-run validation
 
 `run-opencode-fallback.sh` runs `npm test` after a model finishes, but only
-when the repository actually has a `test` script in `package.json`. A
-repository without one - this control repository is the main example - is not
-a failed run. `npm test --if-present` still exits non-zero without a
-`package.json`, which used to retry the agent three times and then fail the job
-even though the agent had succeeded. The gate reads `GITHUB_WORKSPACE` (the
+when the repository actually has a `test` script in `package.json`. This
+control repository has no application code, so its `package.json` maps
+`npm test` to the shell regression suite that covers the agent runner; that
+gives the gate something real to execute instead of failing with
+`ENOENT: no such file or directory, open .../package.json`. A repository
+without a manifest (or without a `test` script) is not a failed run: the gate
+is skipped and `npm` is never started. The gate reads `GITHUB_WORKSPACE` (the
 checkout root) so it does not matter which directory the workflow invokes the
 script from, and it is skipped when `npm` is not installed. A failing test
 suite is fed back to the model (the last 200 log lines) for up to
@@ -82,7 +84,9 @@ model. The wrapper no longer streams through `tee`, because `$!` pointed at
 The runner and its tests also run in CI on every pull request:
 
 ```bash
-.github/scripts/tests/run-opencode-fallback.test.sh
+npm test        # the same shell suite, through the package manifest
+npm run lint    # shellcheck on the runner and its tests
+npm run check   # both
 ```
 
 ### Automatic answers

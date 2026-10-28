@@ -9,10 +9,12 @@ on:
     paths:
       - '.github/scripts/**'
       - '.github/workflows/**'
+      - 'package.json'
   push:
     branches: [main]
     paths:
       - '.github/scripts/**'
+      - 'package.json'
   workflow_dispatch:
 
 permissions:
@@ -27,7 +29,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Lint the shell scripts
-        run: shellcheck -x .github/scripts/*.sh .github/scripts/tests/*.sh
+        # Going through the manifest means a broken package.json is caught by
+        # the same job that validates the scripts it describes.
+        run: npm run lint
 
       - name: Test the fallback runner
-        run: .github/scripts/tests/run-opencode-fallback.test.sh
+        # This is the command the agent runner's post-run gate uses. It has to
+        # exist and pass here, otherwise `npm test` fails with ENOENT.
+        run: npm test
