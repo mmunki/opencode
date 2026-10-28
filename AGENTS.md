@@ -11,6 +11,8 @@ Instructions for the opencode agent working in this repository.
 - `.github/scripts/` contains the tooling the agent uses:
   - `publish-release.sh` builds something and publishes it as a release asset.
   - `gh-account.sh` does the account level operations.
+  - `tests/run-opencode-fallback.test.sh` runs the fallback wrapper against
+    stubbed `opencode` and `npm` binaries; no provider key or network needed.
 
 There is no binary in the source tree any more.  The build output of
 opencode v2.0.22 lives in the release `v2.0.22` of this repository.

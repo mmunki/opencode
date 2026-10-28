@@ -62,6 +62,26 @@ or
 The agent reads the whole thread, then replies with its answer. If the answer
 requires code changes it opens a pull request instead.
 
+### Post-run validation
+
+`run-opencode-fallback.sh` runs `npm test` after a model finishes, but only
+when the repository actually has a `test` script in `package.json`. A
+repository without one - this control repository is the main example - is not
+a failed run. `npm test --if-present` still exits non-zero without a
+`package.json`, which used to retry the agent three times and then fail the job
+even though the agent had succeeded. A failing test suite is fed back to the
+model (the last 200 log lines) for up to `OPENCODE_TEST_RETRIES` attempts.
+
+A stall or a timeout aborts the agent process itself and moves to the next
+model. The wrapper no longer streams through `tee`, because `$!` pointed at
+`tee` and the timeout left the real agent running in the background.
+
+The runner and its tests also run in CI on every pull request:
+
+```bash
+.github/scripts/tests/run-opencode-fallback.test.sh
+```
+
 ### Automatic answers
 
 Every newly opened issue is answered automatically by the triage workflow.

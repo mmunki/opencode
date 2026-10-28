@@ -231,7 +231,8 @@ cmd_repo_create() {
     esac
   done
   [ -n "$name" ] || die "the repository name is required"
-  local body="{\"name\":\"$(json_escape "$name")\",\"private\":$([ "$visibility" = private ] && echo true || echo false)"
+  local body
+  body="{\"name\":\"$(json_escape "$name")\",\"private\":$([ "$visibility" = private ] && echo true || echo false)"
   [ $has_description -eq 1 ] && body="$body,\"description\":\"$(json_escape "$description")\""
   body="$body}"
   log "creating the repository $visibility $name"

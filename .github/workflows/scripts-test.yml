@@ -1,0 +1,33 @@
+name: scripts-test
+
+# The agent runner is shell code without a compiler. These checks catch the
+# kind of regression that only shows up when a job is already running (a broken
+# prompt, a retry loop that never ends, a timeout that leaves a process alive).
+
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/**'
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Lint the shell scripts
+        run: shellcheck -x .github/scripts/*.sh .github/scripts/tests/*.sh
+
+      - name: Test the fallback runner
+        run: .github/scripts/tests/run-opencode-fallback.test.sh
