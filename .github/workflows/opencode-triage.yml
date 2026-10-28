@@ -1,7 +1,6 @@
 name: opencode-triage
 
 # Automatically answers every new (or edited) issue.
-#
 # Also available as a manual trigger from the Actions tab.
 
 on:
@@ -16,27 +15,33 @@ on:
         required: false
         type: string
 
+permissions: write-all
+
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    permissions:
-      # The agent creates releases, pushes tags and opens pull requests.
-      contents: write
-      issues: write
-      pull-requests: write
-      actions: read
+
     # A headless runner cannot answer a permission prompt. Without a timeout
     # a stuck job sits for GitHub's 6 hour maximum before it is cancelled.
     timeout-minutes: 180
+
     env:
-      # Give the agent an explicit 8 GiB heap budget.  ubuntu-latest itself has
+      # Give the agent an explicit 8 GiB heap budget. ubuntu-latest itself has
       # 16 GiB, so this leaves memory for the checkout, git and child tools.
       NODE_OPTIONS: "--max-old-space-size=8192"
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ github.workspace }}
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ secrets.PAT_TOKEN || secrets.OPENCODE_GITHUB_TOKEN }}
 
       - name: Show memory budget
         run: |
@@ -45,7 +50,7 @@ jobs:
 
       - name: Configure git for all repositories
         env:
-          TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.PAT_TOKEN || secrets.OPENCODE_GITHUB_TOKEN }}
         run: |
           git config --global user.name "opencode-agent[bot]"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
@@ -59,67 +64,65 @@ jobs:
             echo "OPENCODE_API_KEY=$KEY" >> "$GITHUB_ENV"
           fi
 
-      # The default instruction lives in prompts/triage.md so it can be edited
-      # without touching this workflow.
+      # Load prompt instructions if available in repository
       - name: Load triage prompt
         run: |
-          {
-            echo "TRIAGE_PROMPT<<EOF"
-            cat prompts/triage.md
-            echo
-            echo "EOF"
-          } >> "$GITHUB_ENV"
+          if [ -f "prompts/triage.md" ]; then
+            {
+              echo "TRIAGE_PROMPT<<EOF"
+              cat prompts/triage.md
+              echo
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
 
-      # The scripts that publish a build as a release and that change the
-      # account have to be executable before the agent uses them.
-      - name: Prepare the release and account tooling
+      # Prepare executable tooling scripts if present
+      - name: Prepare scripts
         run: |
-          chmod +x .github/scripts/*.sh
-          ls -l .github/scripts/
+          if [ -d ".github/scripts" ]; then
+            chmod +x .github/scripts/*.sh || true
+            ls -l .github/scripts/ || true
+          fi
 
-      - name: Remember the state of the checkout
+      - name: Remember state of checkout
         run: echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      # Install opencode directly instead of the anomalyco action: that action's
-      # "Get opencode version" step curls api.github.com and can fail, which
-      # killed the job before the agent even started.  The direct install is
-      # deterministic and works with the fallback wrapper below.
-      - name: Install opencode
+      # Install OpenCode binary via direct installer script
+      - name: Install OpenCode binary
         run: |
           curl -fsSL https://opencode.ai/v2/install | bash -s -- --version 2.0.22
           echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
 
-      - name: Run opencode with model fallback
+      # Configure permissions and settings for OpenCode CLI
+      - name: Configure OpenCode
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/opencode"
+          cat > "$HOME/.config/opencode/opencode.jsonc" <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "permission": "allow",
+            "model": "opencode/deepseek-v4.1-flash-free"
+          }
+          JSON
+
+      # Run OpenCode directly with live terminal output while maintaining fallback features
+      - name: Run OpenCode with fallback & live logging
         env:
-          GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.OPENCODE_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.OPENCODE_GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           PROMPT: ${{ github.event.inputs.prompt || env.TRIAGE_PROMPT }}
-          # The owner token, the agent uses it for everything that is not
-          # covered by GITHUB_TOKEN.
-          OPENCODE_GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
-          # Optional: a fine grained token with "Administration: write".
-          # Only with it the agent can create new tokens and change the
-          # account itself, everything else works without it.
+          OPENCODE_GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.OPENCODE_GITHUB_TOKEN }}
           OPENCODE_ADMIN_TOKEN: ${{ secrets.OPENCODE_ADMIN_TOKEN }}
-          # `external_directory` and `doom_loop` default to "ask". In a
-          # headless runner nobody can answer that prompt, so the job used to
-          # hang until the timeout. Allow every permission automatically;
-          # the GitHub handler denies `question` for its own sessions.
           OPENCODE_PERMISSION: '{"*":"allow"}'
-          # Two minutes without a token means the model is stuck, not working.
           OPENCODE_STALL_TIMEOUT: "120"
           OPENCODE_ATTEMPT_TIMEOUT: "1200"
-        # The wrapper tries the fast models first (GLM, Flint, Beam) and moves
-        # on when a model stalls, hits the free-tier limit, or times out.
         run: .github/scripts/run-opencode-fallback.sh
 
-      # The agent works in its own scratch space, but if it left anything
-      # behind in the checkout it is restored here.  The source tree of the
-      # repository is never changed by a run, a change is only ever made on a
-      # branch and in a pull request.
-      - name: Make sure the source tree was not touched
+      # Ensure checkout remains clean
+      - name: Make sure source tree was not touched
         run: |
           set -euo pipefail
           changed="$(git status --porcelain || true)"
@@ -134,3 +137,4 @@ jobs:
           echo "the checkout is clean:"
           git status --porcelain
           git rev-parse HEAD
+          
