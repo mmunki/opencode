@@ -47,3 +47,34 @@ watchdog.
   explicit branch/push/PR step or removed by the owner.
 - `publish-release.sh --help` prints only a slice of the header and the header
   contains a stray `#       --source-archive` line. Cosmetic.
+
+### Second run, 2026-10-28
+
+**Reported symptom:** the nightly run failed again with
+`npm error path .../package.json` / `ENOENT`, and the retry prompt
+("CRITICAL FIX REQUIRED") was passed back to the agent.
+
+**Root cause:** the fix above exists only on the `test` branch. The
+`opencode-triage` workflow checks out
+`ref: ${{ github.event.repository.default_branch }}`, which is `main`, and
+`main` still contains the old runner that calls `npm test` unconditionally.
+Every issue-triggered run therefore executes the unfixed script from `main`;
+the guard on `test` is never reached. This is a deployment gap, not a new
+regression in the script.
+
+**Change (on `test`):** resolve the manifest from `GITHUB_WORKSPACE` (the
+checkout root, falling back to the current directory) and run `npm` from that
+directory, so the guard and the invocation cannot disagree when a workflow
+step starts in a subdirectory. Skip the gate when `npm` itself is missing.
+Added two regression cases: a manifest without a `test` script must never
+start `npm`, and a run from a subdirectory must validate the workspace root.
+The suite is now 26 assertions.
+
+**Verification:** `shellcheck -x` is clean; all 26 assertions pass.
+
+**Open, needs the owner:** PR #93 (`test` → `main`) carries the runner fix and
+must be merged before issue-triggered runs stop using the old script. Until it
+is merged, no change on `test` can affect the workflow, because the workflow
+always checks out the default branch. An alternative is to change the
+checkout `ref` in `opencode-triage.yml` to the branch the agent uses.
+

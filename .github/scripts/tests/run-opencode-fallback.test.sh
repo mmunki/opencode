@@ -62,7 +62,7 @@ new_case() { # new_case <name> -> sets CASE, adds stubs, changes into it
   : > "$FAKE_NPM_LOG"
   unset FAKE_OPENCODE_EXIT FAKE_NPM_EXIT
   # The harness itself may export an event payload; every case sets what it needs.
-  unset GITHUB_EVENT_PATH GITHUB_REPOSITORY GH_REPO PROMPT TRIAGE_PROMPT OPENCODE_MODELS
+  unset GITHUB_EVENT_PATH GITHUB_REPOSITORY GH_REPO PROMPT TRIAGE_PROMPT OPENCODE_MODELS GITHUB_WORKSPACE
   export PATH="$CASE/bin:$PATH"
   cd "$CASE/work" || exit 1
 }
@@ -134,6 +134,37 @@ check "stall: job fails after every model" [ "$status" -ne 0 ]
 check "stall: both models were tried" [ "$(wc -l < "$FAKE_OPENCODE_CALLS")" -eq 2 ]
 check "stall: watchdog reports the stall" grep -q 'stalled for 1s' <<< "$out"
 check "stall: finishes promptly (${elapsed}s)" [ "$elapsed" -lt 40 ]
+
+# --- 5. a manifest without a test script never starts npm -------------------
+# `npm test --if-present` exits 0 for this file, but starting npm is still
+# wrong: it is the exact path that produced the ENOENT failures.
+new_case manifest-without-test
+printf '{"name":"fixture","scripts":{"build":"true"}}\n' > "$CASE/work/package.json"
+set +e
+out="$(TRIAGE_PROMPT="Triage." GH_REPO="mmunki/opencode" OPENCODE_MODELS="test/model" \
+      timeout 60 "$SCRIPT" 2>&1)"
+status=$?
+set -e
+check "no test script: exit status is 0" [ "$status" -eq 0 ]
+check "no test script: npm was never called" [ ! -s "$FAKE_NPM_LOG" ]
+check "no test script: gate is reported as skipped" grep -q 'No test suite' <<< "$out"
+
+# --- 6. the gate uses the workspace root, not the caller's directory --------
+# The workflow may run a step from a subdirectory. `npm` reads the manifest in
+# its own cwd, so the guard and the invocation must agree on GITHUB_WORKSPACE.
+new_case workspace-root-gate
+printf '{"name":"fixture","scripts":{"test":"exit 0"}}\n' > "$CASE/work/package.json"
+mkdir -p "$CASE/work/sub"
+cd "$CASE/work/sub" || exit 1
+set +e
+out="$(GITHUB_WORKSPACE="$CASE/work" TRIAGE_PROMPT="Triage." GH_REPO="mmunki/opencode" \
+      OPENCODE_MODELS="test/model" timeout 60 "$SCRIPT" 2>&1)"
+status=$?
+set -e
+check "workspace root: exit status is 0" [ "$status" -eq 0 ]
+check "workspace root: npm ran once" [ "$(wc -l < "$FAKE_NPM_LOG")" -eq 1 ]
+check "workspace root: npm ran the test script" grep -q '^npm test --if-present$' "$FAKE_NPM_LOG"
+check "workspace root: tests are reported as passed" grep -q 'All tests passed' <<< "$out"
 
 echo
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"

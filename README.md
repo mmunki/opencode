@@ -69,8 +69,11 @@ when the repository actually has a `test` script in `package.json`. A
 repository without one - this control repository is the main example - is not
 a failed run. `npm test --if-present` still exits non-zero without a
 `package.json`, which used to retry the agent three times and then fail the job
-even though the agent had succeeded. A failing test suite is fed back to the
-model (the last 200 log lines) for up to `OPENCODE_TEST_RETRIES` attempts.
+even though the agent had succeeded. The gate reads `GITHUB_WORKSPACE` (the
+checkout root) so it does not matter which directory the workflow invokes the
+script from, and it is skipped when `npm` is not installed. A failing test
+suite is fed back to the model (the last 200 log lines) for up to
+`OPENCODE_TEST_RETRIES` attempts.
 
 A stall or a timeout aborts the agent process itself and moves to the next
 model. The wrapper no longer streams through `tee`, because `$!` pointed at

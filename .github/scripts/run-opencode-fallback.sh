@@ -84,14 +84,25 @@ if [ -n "$user_message" ]; then
   base_prompt+=$'\n\nUser Message:\n'"$user_message"
 fi
 
-# `npm test --if-present` still fails hard when the repository has no
-# package.json.  Only run the gate when there is a test script to run.
+# The gate has to inspect the same manifest that `npm` would read.  The agent
+# runs from the checkout root (GITHUB_WORKSPACE); falling back to the current
+# directory keeps the script usable locally.  A manifest without a `test`
+# script means there is nothing to validate -- and npm must never be started in
+# that case, otherwise it exits 254/ENOENT and the wrapper mistakes the missing
+# file for a regression and re-runs the agent.
+repo_root="${GITHUB_WORKSPACE:-$PWD}"
+[ -d "$repo_root" ] || repo_root="$PWD"
+
 has_test_suite() {
-  [ -f package.json ] || return 1
+  local manifest="$repo_root/package.json"
+  [ -f "$manifest" ] || return 1
+  # Without npm the gate cannot run at all; that is a skipped gate, not a
+  # broken change.
+  command -v npm >/dev/null 2>&1 || return 1
   if command -v jq >/dev/null 2>&1; then
-    jq -e '(.scripts.test? // "") | length > 0' package.json >/dev/null 2>&1
+    jq -e '(.scripts.test? // "") | length > 0' "$manifest" >/dev/null 2>&1
   else
-    grep -qE '"test"[[:space:]]*:' package.json
+    grep -qE '"test"[[:space:]]*:' "$manifest"
   fi
 }
 
@@ -178,7 +189,7 @@ run_attempt() {
 
     echo "::notice::Running post-execution test validation..."
     test_log="$(mktemp)"
-    if npm test --if-present 2>&1 | tee "$test_log"; then
+    if ( cd "$repo_root" && npm test --if-present ) 2>&1 | tee "$test_log"; then
       rm -f "$test_log"
       echo "::notice::All tests passed successfully!"
       return 0
