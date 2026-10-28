@@ -86,7 +86,7 @@ jobs:
       # deterministic and works with the fallback wrapper below.
       - name: Install opencode
         run: |
-          curl -fsSL https://opencode.ai/install | bash
+          curl -fsSL https://opencode.ai/install | bash -s -- --version 2.0.22
           echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
 
       - name: Run opencode with model fallback
